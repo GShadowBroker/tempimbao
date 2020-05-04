@@ -74,6 +74,11 @@ export default {
           icon: 'mdi-chart-bubble',
           title: 'Sobre',
           to: '/sobre'
+        },
+        {
+          icon: 'mdi-chart-bubble',
+          title: 'Teste',
+          to: '/test'
         }
       ],
       subtitles: [

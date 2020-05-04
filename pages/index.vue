@@ -2,18 +2,30 @@
   <v-container>
     <v-row class="d-flex justify-center">
       <v-col class="col-12 col-sm-10 col-md-8">
-        <v-form v-model="valid" @submit.prevent="handleSubmit">
-          <v-text-field
-            v-model="city_name"
-            solo
-            label="Nome da cidade"
-            prepend-inner-icon="mdi-magnify"
-            clearable
-            required
-          ></v-text-field>
-        </v-form>
+        <v-autocomplete
+          v-model="city_name"
+          :loading="loading"
+          :items="items"
+          :search-input.sync="search"
+          cache-items
+          solo
+          label="Nome da cidade"
+          prepend-inner-icon="mdi-magnify"
+          clearable
+          item-text="municipio.nome"
+        ></v-autocomplete>
       </v-col>
     </v-row>
+
+    <v-row>
+      <v-col class="d-flex justify-center">
+        <v-btn :disabled="!city_name" @click="handleSubmit">
+          <v-icon left>mdi-autorenew</v-icon>
+          Atualizar cidade
+        </v-btn>
+      </v-col>
+    </v-row>
+
     <v-row class="d-flex justify-center">
       <v-col class="col-12 col-sm-10 col-md-8">
         <v-card v-if="weather.city" class="mx-auto" max-width="600">
@@ -23,7 +35,7 @@
                 weather.city
               }}</v-list-item-title>
               <v-list-item-subtitle
-                >última atualização: {{ weather.date }} às {{ weather.time }}
+                >Última atualização: {{ weather.date }} às {{ weather.time }}
               </v-list-item-subtitle>
               <v-list-item-title
                 class="headline secondary--text pt-4 text-center"
@@ -101,13 +113,30 @@
 
 <script>
 export default {
+  asyncData({ params, $axios }) {
+    return $axios
+      .$get(`https://servicodados.ibge.gov.br/api/v1/localidades/distritos`)
+      .then((res) => {
+        return { autocomplete: res }
+      })
+  },
   data() {
     return {
       valid: true,
       city_name: '',
+      apiKey: process.env.weatherAppId,
       weather: {},
       labels: ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'],
-      time: 0
+      time: 0,
+      search: null,
+      select: null,
+      loading: false,
+      items: []
+    }
+  },
+  watch: {
+    search(val) {
+      val && val !== this.select && this.querySelections(val)
     }
   },
   mounted() {
@@ -117,16 +146,25 @@ export default {
   },
   methods: {
     handleSubmit() {
-      const apiKey = 'b9f56e5e'
       this.$axios
         .$get(
-          `https://api.hgbrasil.com/weather?format=json-cors&key=${apiKey}&city_name=${this.city_name}`
+          `https://api.hgbrasil.com/weather?format=json-cors&key=${this.apiKey}&city_name=${this.city_name}`
         )
         .then((res) => {
           this.weather = res.results
           localStorage.weather = JSON.stringify(this.weather)
           this.city_name = ''
         })
+    },
+    querySelections(v) {
+      this.loading = true
+      // Simulated ajax query
+      this.items = this.autocomplete.filter((e) => {
+        return (e.municipio.nome || '')
+          .toLowerCase()
+          .includes((v || '').toLowerCase())
+      })
+      this.loading = false
     },
     getIcon(code, currently) {
       const iconCodes = [
@@ -198,9 +236,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-.description {
-  border: 1px solid red;
-}
-</style>
